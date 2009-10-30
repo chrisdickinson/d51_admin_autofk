@@ -9,7 +9,7 @@ handler500 # Pyflakes
 urlpatterns = patterns(
     '',
     (r'^admin/(.*)', admin.site.root),
-    (r'^/', include('testproject.urls')),
+    (r'^/', include('project.testproject.urls')),
     (r'^accounts/login/$', 'django.contrib.auth.views.login'),
 )
 

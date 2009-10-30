@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import simplejson
 from django.utils.safestring import mark_safe
+from django.core.urlresolvers import reverse
 from django.conf import settings
 from django import forms
 import os
@@ -57,7 +58,7 @@ class ForeignKey(models.ForeignKey):
             def __init__(w_self, *args, **kwargs):
                 w_self.target_url = self.target_url
                 w_self.js_methods = self.js_methods
-                w_self.model = self.to
+                w_self.model = self.related
                 w_self.instantiate_fn = self.instantiate_fn
                 return super(w_self.__class__, w_self).__init__(*args, **kwargs)
 
@@ -93,11 +94,12 @@ class ForeignKey(models.ForeignKey):
                                     'query_functions':%s
                             });
                         });
+                    </script>
                 """
                 output = output % (
                     super(w_self.__class__, w_self).render(name, value, attrs),
                     name,
-                    w_self.target_url,
+                    reverse(w_self.target_url),
                     simplejson.dumps(w_self.js_methods),
                 )
                 return mark_safe(output)
