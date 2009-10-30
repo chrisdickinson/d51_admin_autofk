@@ -7,23 +7,28 @@ Array.prototype.has = function (elem) {
     return false;
 };
 
+function startswith_json(obj) {
+    return {'query':$(obj).val()};
+}
+
 (function ($) {
     $.fn.autocomplete = function (options) {
         var obj = $(this);
+        if(!(options.query_functions instanceof Array)) {
+            options.query_functions = [options.query_functions];
+        }
+
         obj.attr('autocomplete', 'off');
         obj.parents('form').attr('autocomplete','off');
         var container = $('<ul />').addClass('autocomplete-container');
         obj.after(container);
 
         var waiting = false;
-        console.log(obj);
-        console.log(options);
 
         var ask_server = function () {
             var build_suggestions = function (response) {
                 waiting = false;
-                console.log(response);
-                if(response.total == 0) {
+                if(response.length == 0) {
                     container.html('');
                     container.removeClass('autocomplete-visible');
                 } else {
@@ -39,8 +44,8 @@ Array.prototype.has = function (elem) {
 
                     var elems = $();
                     container.html('');
-                    for(var i = 0; i < response.results.length; ++i) {
-                        container.append(create_elem(response.results[i].pk, response.results[i].name));
+                    for(var i = 0; i < response.length; ++i) {
+                        container.append(create_elem(response[i].pk, response[i].name));
                     }
                     if(container.is(':hidden')) {
                         container.addClass('autocomplete-visible');
@@ -56,7 +61,6 @@ Array.prototype.has = function (elem) {
                 }
                 return data;
             };
-
             $.getJSON(options.url, build_data(), build_suggestions);
             waiting = true;
         };
@@ -124,7 +128,6 @@ Array.prototype.has = function (elem) {
             if([38, 40, 9, 13, 27].has(event.keyCode)) {
                 return;
             }
-            
             ask_server();
         };
         obj.keyup(key_up).keydown(key_down).blur(function () {

@@ -14,9 +14,9 @@ def fail_instantiate(widget, post_dict, formfield_name):
     return None
 
 def attempt_instantiate(widget, post_dict, formfield_name):
-    if name not in datadict.keys():
+    if formfield_name not in post_dict.keys():
         return None
-    return widget.model(**{widget.name_field:datadict.get(name)})
+    return widget.model(**{widget.name_field:post_dict.get(formfield_name)})
 
 class ForeignKey(models.ForeignKey):
     def __init__(self, to,
@@ -40,7 +40,8 @@ class ForeignKey(models.ForeignKey):
         self.name_field = name_field 
         if self.name_field is None:
             self.name_field = 'name' 
-            
+        
+        self.model = to 
         self.target_url = target_url
         self.js_methods = js_methods
         return super(self.__class__, self).__init__(to, *args, **kwargs)
@@ -58,7 +59,8 @@ class ForeignKey(models.ForeignKey):
             def __init__(w_self, *args, **kwargs):
                 w_self.target_url = self.target_url
                 w_self.js_methods = self.js_methods
-                w_self.model = self.related
+                w_self.model = self.model
+                w_self.name_field = self.name_field
                 w_self.instantiate_fn = self.instantiate_fn
                 return super(w_self.__class__, w_self).__init__(*args, **kwargs)
 
@@ -81,10 +83,11 @@ class ForeignKey(models.ForeignKey):
                 real_value = None
                 if value is not None:
                     try:
-                        real_value = model.objects.get(pk__exact=value)
+                        real_value = w_self.model.objects.get(pk__exact=value)
                         real_value = getattr(real_value, w_self.name_field)
                     except w_self.model.DoesNotExist:
                         real_value = ''
+                reversed_url = reverse(w_self.target_url)
                 output = """
                     %s
                     <script type="text/javascript">
@@ -97,9 +100,9 @@ class ForeignKey(models.ForeignKey):
                     </script>
                 """
                 output = output % (
-                    super(w_self.__class__, w_self).render(name, value, attrs),
+                    super(w_self.__class__, w_self).render(name, real_value, attrs),
                     name,
-                    reverse(w_self.target_url),
+                    reversed_url,
                     simplejson.dumps(w_self.js_methods),
                 )
                 return mark_safe(output)

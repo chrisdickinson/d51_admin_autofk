@@ -9,6 +9,6 @@ class SimpleModelHandler(BaseHandler):
 
     def read(self, request):
         query = request.GET.get('query', None)
-        return SimpleModel.objects(name__startswith=query)
+        return SimpleModel.objects.filter(name__startswith=query)
 
 simplemodel_resource = Resource(handler=SimpleModelHandler)
