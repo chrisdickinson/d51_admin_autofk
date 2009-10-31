@@ -9,6 +9,7 @@ class SimpleModel(models.Model):
 
 class ComplexModel(models.Model):
     name = models.CharField(max_length=255)
-    simple_input = d51models.ForeignKey(SimpleModel, 'simplemodel-json', 'startswith_json')
+    simple_input = d51models.ForeignKey(SimpleModel)
+
     def __unicode__(self):
         return u'%s' % self.name

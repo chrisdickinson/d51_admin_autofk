@@ -7,13 +7,19 @@ Array.prototype.has = function (elem) {
     return false;
 };
 
-function startswith_json(obj) {
-    return {'query':$(obj).val()};
+function startswith_json(obj, name_field) {
+    var d = {};
+    d[name_field+'__startswith']=$(obj).val();
+    return d;
 }
 
 (function ($) {
     $.fn.autocomplete = function (options) {
         var obj = $(this);
+        if(!options['name_field']) {
+            options['name_field'] = 'name';
+        }
+
         if(!(options.query_functions instanceof Array)) {
             options.query_functions = [options.query_functions];
         }
@@ -45,7 +51,7 @@ function startswith_json(obj) {
                     var elems = $();
                     container.html('');
                     for(var i = 0; i < response.length; ++i) {
-                        container.append(create_elem(response[i].pk, response[i].name));
+                        container.append(create_elem(response[i].pk, response[i][options.name_field]));
                     }
                     if(container.is(':hidden')) {
                         container.addClass('autocomplete-visible');
@@ -57,7 +63,7 @@ function startswith_json(obj) {
                 data = {}
                 for(var i = 0; i < options.query_functions.length; ++i) {
                     $.extend(data,
-                    eval(options.query_functions[i]+"(obj)"));
+                    eval(options.query_functions[i]+"(obj, options.name_field)"));
                 }
                 return data;
             };

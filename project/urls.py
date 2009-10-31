@@ -1,15 +1,15 @@
-
 from django.conf.urls.defaults import patterns, include, handler500
 from django.conf import settings
 from django.contrib import admin
+import d51_django_admin_piston
 admin.autodiscover()
+d51_django_admin_piston.autodiscover(admin.site)
 
 handler500 # Pyflakes
 
 urlpatterns = patterns(
     '',
-    (r'^admin/(.*)', admin.site.root),
-    (r'^testproject/', include('project.testproject.urls')),
+    (r'^admin/', include(admin.site.urls)),
     (r'^accounts/login/$', 'django.contrib.auth.views.login'),
 )
 

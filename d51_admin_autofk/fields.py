@@ -1,14 +1,5 @@
 from django.db import models
-from django.utils import simplejson
-from django.utils.safestring import mark_safe
-from django.core.urlresolvers import reverse
-from django.conf import settings
-from django import forms
-import os
-
-MEDIA_JQUERY = getattr(settings, 'D51_ADMIN_AUTOFK_JQUERY', "http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js")
-MEDIA_D51AUTO_JS = os.path.join(getattr(settings, 'D51_ADMIN_AUTOFK_MEDIA', 'd51autofk'), 'js/jquery.d51auto.js')
-MEDIA_D51AUTO_CSS = os.path.join(getattr(settings, 'D51_ADMIN_AUTOFK_MEDIA', 'd51autofk'), 'css/jquery.d51auto.css')
+from widgets import AutocompleteWidget
 
 def fail_instantiate(widget, post_dict, formfield_name):
     return None
@@ -20,30 +11,35 @@ def attempt_instantiate(widget, post_dict, formfield_name):
 
 class ForeignKey(models.ForeignKey):
     def __init__(self, to,
-                target_url, 
-                js_methods, 
+                target_url=None, 
+                js_methods=None, 
                 instantiate_fn=None, 
                 name_field=None, 
                 *args, **kwargs):
+        self.model = to 
         self.instantiate_fn = instantiate_fn 
-
         def instantiate_wrapper(fn):
             def inner(*args, **kwargs):
                 obj = fn(*args, **kwargs)
                 obj.save()
                 return obj.pk
             return inner
-
         if self.instantiate_fn is None:
             self.instantiate_fn = attempt_instantiate
         self.instantiate_fn = instantiate_wrapper(self.instantiate_fn)
+
+        self.target_url = target_url
+        if self.target_url is None:
+            info = self.model._meta.app_label, self.model._meta.module_name
+            self.target_url = 'admin:admin-piston-%s-%s' % info
+        
+        self.js_methods = js_methods
+        if self.js_methods is None:
+            self.js_methods = ['startswith_json',]
+
         self.name_field = name_field 
         if self.name_field is None:
             self.name_field = 'name' 
-        
-        self.model = to 
-        self.target_url = target_url
-        self.js_methods = js_methods
         return super(self.__class__, self).__init__(to, *args, **kwargs)
 
     def formfield(self, *args, **kwargs):
@@ -55,59 +51,11 @@ class ForeignKey(models.ForeignKey):
             trickiness abounds: this creates a closure-class
             that'll render our widget the way we want
         """
-        class AutocompleteWidget(forms.TextInput):
-            def __init__(w_self, *args, **kwargs):
-                w_self.target_url = self.target_url
-                w_self.js_methods = self.js_methods
-                w_self.model = self.model
-                w_self.name_field = self.name_field
-                w_self.instantiate_fn = self.instantiate_fn
-                return super(w_self.__class__, w_self).__init__(*args, **kwargs)
-
-            def value_from_datadict(w_self, data, files, name):
-                value = super(w_self.__class__, w_self).value_from_datadict(data, files, name)
-                if value is not None and value != '':
-                    pk = None
-                    try:
-                        query = {'%s__exact'%self.name_field:value}
-                        obj = self.model.objects.get(**query)
-                        pk = obj.pk
-                    except w_self.model.DoesNotExist:
-                        pk = w_self.instantiate_fn(self, data, name)
-                    return pk
-                return None
-
-            def render(w_self, name, value, attrs=None):
-                if attrs is None:
-                    attrs = {}
-                real_value = None
-                if value is not None:
-                    try:
-                        real_value = w_self.model.objects.get(pk__exact=value)
-                        real_value = getattr(real_value, w_self.name_field)
-                    except w_self.model.DoesNotExist:
-                        real_value = ''
-                reversed_url = reverse(w_self.target_url)
-                output = """
-                    %s
-                    <script type="text/javascript">
-                        $(function(){
-                            $('input[name=%s]').autocomplete({
-                                    'url':"%s",
-                                    'query_functions':%s
-                            });
-                        });
-                    </script>
-                """
-                output = output % (
-                    super(w_self.__class__, w_self).render(name, real_value, attrs),
-                    name,
-                    reversed_url,
-                    simplejson.dumps(w_self.js_methods),
-                )
-                return mark_safe(output)
-
-            class Media:
-                js = (MEDIA_JQUERY,MEDIA_D51AUTO_JS)
-                css =  {'all': (MEDIA_D51AUTO_CSS,)}
-        return AutocompleteWidget
+        new_class = type(object)('ForeignKeyACWidget', (AutocompleteWidget,), {
+            'target_url':self.target_url,
+            'js_methods':self.js_methods,
+            'model':self.model,
+            'name_field':self.name_field,
+            'instantiate_fn':self.instantiate_fn
+        })
+        return new_class
