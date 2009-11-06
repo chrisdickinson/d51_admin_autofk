@@ -11,7 +11,7 @@ MEDIA_D51AUTO_CSS = os.path.join(getattr(settings, 'D51_ADMIN_AUTOFK_MEDIA', 'd5
 
 class AutocompleteWidget(forms.TextInput):
     def value_from_datadict(self, data, files, name):
-        value = super(self.__class__, self).value_from_datadict(data, files, name)
+        value = super(AutocompleteWidget, self).value_from_datadict(data, files, name)
         if value is not None and value != '':
             pk = None
             try:
