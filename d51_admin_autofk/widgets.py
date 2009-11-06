@@ -19,7 +19,10 @@ class AutocompleteWidget(forms.TextInput):
                 obj = self.model.objects.get(**query)
                 pk = obj.pk
             except self.model.DoesNotExist:
-                pk = self.instantiate_fn(self, data, name)
+                if isinstance(self.instantiate_fn, self.value_from_datadict.__class__):
+                    pk = self.instantiate_fn(data, name)
+                else:
+                    pk = self.instantiate_fn(self, data, name)
             return pk
         return None
 
