@@ -14,8 +14,8 @@ class AutocompleteWidget(forms.TextInput):
         value = super(AutocompleteWidget, self).value_from_datadict(data, files, name)
         if value is not None and value != '':
             pk = None
+            query = {'%s__exact'%self.name_field:value}
             try:
-                query = {'%s__exact'%self.name_field:value}
                 obj = self.model.objects.get(**query)
                 pk = obj.pk
             except self.model.DoesNotExist:
@@ -23,6 +23,11 @@ class AutocompleteWidget(forms.TextInput):
                     pk = self.instantiate_fn(data, name)
                 else:
                     pk = self.instantiate_fn(self, data, name)
+            except self.model.MultipleObjectsReturned:
+                # this shouldn't happen unless the DB you're using doesn't really
+                # pay attention to "unique" values... cough, cough, sqlite
+                obj = self.model.objects.filter(**query)[0]
+                pk = obj.pk
             return pk
         return None
 
