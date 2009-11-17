@@ -15,6 +15,7 @@ function startswith_json(obj, name_field) {
 
 (function ($) {
     $.fn.autocomplete = function (options) {
+        var timeout_fn = null;
         var obj = $(this);
         if(!options['name_field']) {
             options['name_field'] = 'name';
@@ -23,6 +24,10 @@ function startswith_json(obj, name_field) {
         if(!(options.query_functions instanceof Array)) {
             options.query_functions = [options.query_functions];
         }
+
+        var container_div = $('<div></div>').css({'position':'relative'});
+        obj.parent().append(container_div);
+        obj.appendTo(container_div);
 
         obj.attr('autocomplete', 'off');
         obj.parents('form').attr('autocomplete','off');
@@ -37,6 +42,7 @@ function startswith_json(obj, name_field) {
                 if(response.length == 0) {
                     container.html('');
                     container.removeClass('autocomplete-visible');
+                    container.parent().removeClass('autocomplete-parent-visible');
                 } else {
                     var obj_val = obj.val();
                     var regex = new RegExp("("+obj_val+")(.*)"); 
@@ -55,6 +61,7 @@ function startswith_json(obj, name_field) {
                     }
                     if(container.is(':hidden')) {
                         container.addClass('autocomplete-visible');
+                        container.parent().addClass('autocomplete-parent-visible');
                     }
                 }
             };
@@ -73,6 +80,9 @@ function startswith_json(obj, name_field) {
 
         var key_down = function (event) {
             if([38, 40, 13, 27].has(event.keyCode)) {
+                if(event.shiftKey) {
+                    return;
+                }
                 event.preventDefault();
             }
             if(container.is(':hidden')) {
@@ -99,6 +109,7 @@ function startswith_json(obj, name_field) {
             var set_selected = function () {
                 var selected = container.children('.autocomplete-selected').eq(0);
                 container.html('').removeClass('autocomplete-visible');
+                container.parent().removeClass('autocomplete-parent-visible');
                 if(selected.length == 0) {
                     return;
                 }
@@ -119,25 +130,33 @@ function startswith_json(obj, name_field) {
                     break;
                 case 27:
                     container.html('').removeClass('autocomplete-visible');
+                    container.parent().removeClass('autocomplete-parent-visible');
                   break;
             }
         };
 
         var key_up = function (event) {
+            if(timeout_fn) {
+                clearTimeout(timeout_fn);
+            }
+
             if(waiting) {
                 return;
             }
             if(obj.val() == '') {
                 container.html('').removeClass('autocomplete-visible');
+                container.parent().removeClass('autocomplete-parent-visible');
                 return;
             }
             if([38, 40, 9, 13, 27].has(event.keyCode)) {
                 return;
             }
-            ask_server();
+
+            timeout_fn = setTimeout(ask_server, 500);
         };
         obj.keyup(key_up).keydown(key_down).blur(function () {
                 container.html('').removeClass('autocomplete-visible');
+                container.parent().removeClass('autocomplete-parent-visible');
         });
     };
 })(jQuery);
