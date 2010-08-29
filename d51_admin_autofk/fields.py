@@ -54,7 +54,7 @@ class ForeignKey(models.ForeignKey):
         new_class = type(object)('ForeignKeyACWidget', (AutocompleteWidget,), {
             'target_url':self.target_url,
             'js_methods':self.js_methods,
-            'model':self.model,
+            'model':self.rel.to,
             'name_field':self.name_field,
             'instantiate_fn':self.instantiate_fn
         })
